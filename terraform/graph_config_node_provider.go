@@ -39,6 +39,17 @@ func (n *GraphNodeConfigProvider) DependentOn() []string {
 	return result
 }
 
+func (n *GraphNodeConfigProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	return dot.NewNode(name, map[string]string{
+		"label": n.Name(),
+		"shape": "diamond",
+	})
+}
+
+func (n *GraphNodeConfigProvider) DotOrigin() bool {
+	return true
+}
+
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigProvider) EvalTree() EvalNode {
 	return ProviderEvalTree(n.ProviderName(), n.Provider.RawConfig)
@@ -56,19 +67,6 @@ func (n *GraphNodeConfigProvider) ProviderName() string {
 // GraphNodeProvider implementation
 func (n *GraphNodeConfigProvider) ProviderConfig() *config.RawConfig {
 	return n.Provider.RawConfig
-}
-
-// GraphNodeDotter impl.
-func (n *GraphNodeConfigProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "diamond",
-	})
-}
-
-// GraphNodeDotterOrigin impl.
-func (n *GraphNodeConfigProvider) DotOrigin() bool {
-	return true
 }
 
 // GraphNodeFlattenable impl.
@@ -122,6 +120,19 @@ func (n *GraphNodeConfigProviderFlat) DependentOn() []string {
 	}
 
 	return result
+}
+
+// GraphNodeDotter impl.
+func (n *GraphNodeConfigProviderFlat) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	return dot.NewNode(name, map[string]string{
+		"label": n.Name(),
+		"shape": "diamond",
+	})
+}
+
+// GraphNodeDotterOrigin impl.
+func (n *GraphNodeConfigProviderFlat) DotOrigin() bool {
+	return true
 }
 
 func (n *GraphNodeConfigProviderFlat) ProviderName() string {

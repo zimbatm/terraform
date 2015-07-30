@@ -2,9 +2,11 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/dot"
 )
 
 // GraphNodeConfigOutput represents an output configured within the
@@ -66,6 +68,17 @@ func (n *GraphNodeConfigOutput) DestroyEdgeInclude(dag.Vertex) bool {
 	return false
 }
 
+// GraphNodeDotter impl.
+func (n *GraphNodeConfigOutput) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	return dot.NewNode(name, map[string]string{
+		"label":     n.OutputName(),
+		"shape":     "invhouse",
+		"style":     "filled",
+		"fillcolor": "#FFB2B2",
+		"fontname":  "courier",
+	})
+}
+
 // GraphNodeFlattenable impl.
 func (n *GraphNodeConfigOutput) Flatten(p []string) (dag.Vertex, error) {
 	return &GraphNodeConfigOutputFlat{
@@ -101,4 +114,16 @@ func (n *GraphNodeConfigOutputFlat) DependentOn() []string {
 	return modulePrefixList(
 		n.GraphNodeConfigOutput.DependentOn(),
 		prefix)
+}
+
+// GraphNodeDotter impl.
+func (n *GraphNodeConfigOutputFlat) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	label := fmt.Sprintf("%s.%s", strings.Join(n.PathValue[1:], "."), n.OutputName())
+	return dot.NewNode(name, map[string]string{
+		"label":     label,
+		"shape":     "invhouse",
+		"style":     "filled",
+		"fillcolor": "#FFB2B2",
+		"fontname":  "courier",
+	})
 }

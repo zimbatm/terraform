@@ -288,19 +288,6 @@ func (n *graphNodeDisabledProvider) Name() string {
 	return fmt.Sprintf("%s (disabled)", dag.VertexName(n.GraphNodeProvider))
 }
 
-// GraphNodeDotter impl.
-func (n *graphNodeDisabledProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "diamond",
-	})
-}
-
-// GraphNodeDotterOrigin impl.
-func (n *graphNodeDisabledProvider) DotOrigin() bool {
-	return true
-}
-
 // GraphNodeDependable impl.
 func (n *graphNodeDisabledProvider) DependableName() []string {
 	return []string{"provider." + n.ProviderName()}

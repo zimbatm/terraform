@@ -26,6 +26,7 @@ func (c *GraphCommand) Run(args []string) int {
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
 	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
+	cmdFlags.Var((*FlagStringSlice)(&c.Meta.targets), "target", "resource to target")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
