@@ -21,6 +21,7 @@ import (
 %token  <str> PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
+%token  <str> INDEX_BRACKET_LEFT INDEX_BRACKET_RIGHT
 
 %token <token> ARITH_OP IDENTIFIER INTEGER FLOAT STRING
 
@@ -139,6 +140,10 @@ expr:
         }
     }
 |   IDENTIFIER
+    {
+        $$ = &ast.VariableAccess{Name: $1.Value.(string), Posx: $1.Pos}
+    }
+|   IDENTIFIER INDEX_BRACKET_LEFT expr INDEX_BRACKET_RIGHT
     {
         $$ = &ast.VariableAccess{Name: $1.Value.(string), Posx: $1.Pos}
     }
