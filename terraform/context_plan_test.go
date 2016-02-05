@@ -368,6 +368,72 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 	}
 }
 
+// https://github.com/hashicorp/terraform/issues/3114
+func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
+	m := testModule(t, "plan-modules-remove-provisioners")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.top": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "top",
+						},
+					},
+				},
+			},
+			&ModuleState{
+				Path: []string{"root", "parent", "childone"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+						},
+					},
+				},
+			},
+			&ModuleState{
+				Path: []string{"root", "parent", "childtwo"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(``)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	var l sync.Mutex
 	var calls []string

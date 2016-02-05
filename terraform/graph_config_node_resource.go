@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -147,8 +148,10 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 
 	// Primary and non-destroy modes are responsible for creating/destroying
 	// all the nodes, expanding counts.
+	log.Printf("I AM BUILDING A DYNAMIC GRAPH FOR %s; DESTROY MODE IS: %v", n.Resource.Id(), n.DestroyMode)
 	switch n.DestroyMode {
 	case DestroyNone, DestroyPrimary:
+		log.Printf("I AM ADDING A RESOURCE COUNT TRANSFORMER FOR %s; DESTROY MODE WAS: %v", n.Resource.Id(), n.DestroyMode)
 		steps = append(steps, &ResourceCountTransformer{
 			Resource: n.Resource,
 			Destroy:  n.DestroyMode != DestroyNone,
@@ -174,6 +177,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	case DestroyTainted:
 		// If we're only destroying tainted resources, then we only
 		// want to find tainted resources and destroy them here.
+		log.Printf("I AM ADDING A TAINTED TRANSFORMER FOR %s", n.Resource.Id())
 		steps = append(steps, &TaintedTransformer{
 			State: state,
 			View:  n.Resource.Id(),
@@ -212,6 +216,9 @@ func (n *GraphNodeConfigResource) SetTargets(targets []ResourceAddress) {
 
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigResource) EvalTree() EvalNode {
+	if n.DestroyMode == DestroyTainted {
+		return &EvalNoop{}
+	}
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{Config: n.Resource.RawCount},

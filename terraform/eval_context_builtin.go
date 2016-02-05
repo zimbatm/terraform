@@ -220,6 +220,7 @@ func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
 func (ctx *BuiltinEvalContext) InitProvisioner(
 	n string) (ResourceProvisioner, error) {
 	ctx.once.Do(ctx.init)
+	log.Printf("Got InitProvisioner(%q)", n)
 
 	// If we already initialized, it is an error
 	if p := ctx.Provisioner(n); p != nil {
@@ -259,6 +260,9 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
 	copy(provPath, ctx.Path())
 	provPath[len(provPath)-1] = n
 
+	log.Printf("Storing provisioner in cache for path: %s", strings.Join(provPath, "."))
+	log.Printf("Storing provisioner in cache as: %q", PathCacheKey(provPath))
+
 	return ctx.ProvisionerCache[PathCacheKey(provPath)]
 }
 
@@ -291,6 +295,7 @@ func (ctx *BuiltinEvalContext) Interpolate(
 			Path:     ctx.Path(),
 			Resource: r,
 		}
+
 		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
 		if err != nil {
 			return nil, err
