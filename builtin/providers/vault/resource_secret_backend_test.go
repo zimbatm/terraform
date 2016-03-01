@@ -164,6 +164,32 @@ func TestAccVaultSecretBackend_updatePath(t *testing.T) {
 	})
 }
 
+func TestAccVaultSecretBackend_postgres(t *testing.T) {
+	var mount api.MountOutput
+	path := fmt.Sprintf("pg-%s", acctest.RandString(5))
+	conn := "postgres://localhost:5432/postgres"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVaultSecretBackendDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVaultSecretBackendConfigPostgres(
+					path, conn, 22, 11, false, "1h", "10h"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVaultSecretBackendExists("vault_secret_backend.foo", &mount),
+					// NOTE: As of writing there is no API for reading the postgresql
+					//       config back out, so no way to implement assertions.
+					//       See: https://github.com/hashicorp/vault/issues/1157
+					// testAccCheckVaultSecretBackendAttributesPostgres(
+					// 	&mount, conn, 22, 11, false, "1h", "10h"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVaultWriteSecret(path, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*api.Client)
@@ -330,6 +356,27 @@ resource "vault_secret_backend" "foo" {
 	max_lease_ttl     = "%s"
 }
 `, path, descrip, defaultLeaseTTL, maxLeaseTTL)
+}
+
+func testAccVaultSecretBackendConfigPostgres(
+	path, conn string,
+	maxOpen, maxIdle int,
+	verify bool,
+	lease, leaseMax string) string {
+	return fmt.Sprintf(`
+resource "vault_secret_backend" "foo" {
+	type = "postgresql"
+	path = "%s"
+	postgresql {
+		connection_url       = "%s"
+		max_open_connections = %d
+		max_idle_connections = %d
+		verify_connection    = %t
+		lease                = "%s"
+		lease_max            = "%s"
+	}
+}
+`, path, conn, maxOpen, maxIdle, verify, lease, leaseMax)
 }
 
 func testAccVaultSecretBackendConfigMinimal() string {
