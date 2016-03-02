@@ -49,12 +49,13 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"vault_audit_backend":  resourceVaultAuditBackend(),
-			"vault_auth_backend":   resourceVaultAuthBackend(),
-			"vault_secret_backend": resourceVaultSecretBackend(),
-			"vault_policy":         resourceVaultPolicy(),
-			"vault_secret":         resourceVaultSecret(),
-			"vault_token":          resourceVaultToken(),
+			"vault_audit_backend":   resourceVaultAuditBackend(),
+			"vault_auth_backend":    resourceVaultAuthBackend(),
+			"vault_secret_backend":  resourceVaultSecretBackend(),
+			"vault_policy":          resourceVaultPolicy(),
+			"vault_postgresql_role": resourceVaultPostgresqlRole(),
+			"vault_secret":          resourceVaultSecret(),
+			"vault_token":           resourceVaultToken(),
 		},
 
 		ConfigureFunc: providerConfigure,
