@@ -45,7 +45,10 @@ func resourceVaultAuditBackend() *schema.Resource {
 }
 
 func resourceVaultAuditBackendCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	path := d.Get("path").(string)
 	if path == "" {
@@ -55,7 +58,7 @@ func resourceVaultAuditBackendCreate(d *schema.ResourceData, meta interface{}) e
 	for k, v := range d.Get("options").(map[string]interface{}) {
 		options[k] = v.(string)
 	}
-	err := client.Sys().EnableAudit(
+	err = client.Sys().EnableAudit(
 		path,
 		d.Get("type").(string),
 		d.Get("description").(string),
@@ -72,7 +75,10 @@ func resourceVaultAuditBackendCreate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceVaultAuditBackendRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	audits, err := client.Sys().ListAudit()
 	if err != nil {
@@ -95,10 +101,13 @@ func resourceVaultAuditBackendRead(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceVaultAuditBackendDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	path := d.Id()
-	err := client.Sys().DisableAudit(path)
+	err = client.Sys().DisableAudit(path)
 	if err != nil {
 		return fmt.Errorf("Error disabling audit backend: %s", err)
 	}

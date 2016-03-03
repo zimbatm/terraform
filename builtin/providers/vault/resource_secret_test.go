@@ -137,7 +137,10 @@ func TestAccVaultSecret_ttlDrift(t *testing.T) {
 func testAccCheckVaultSecretExists(key string, secret *api.Secret) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[key]
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		t, err := client.Logical().Read(rs.Primary.ID)
 		if err != nil {
@@ -182,7 +185,10 @@ func testAccCheckVaultSecretAttributes(
 }
 
 func testAccCheckVaultSecretDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*api.Client)
+	client, err := testAccProvider.Meta().(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "vault_secret" {
@@ -204,8 +210,11 @@ func testAccCheckVaultSecretDestroy(s *terraform.State) error {
 
 func testAccVaultSecretDisappear(path string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
-		_, err := client.Logical().Delete(path)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
+		_, err = client.Logical().Delete(path)
 		return err
 	}
 }
@@ -213,8 +222,11 @@ func testAccVaultSecretDisappear(path string) resource.TestCheckFunc {
 func testAccVaultSecretDrift(
 	path string, data map[string]interface{}) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
-		_, err := client.Logical().Write(path, data)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
+		_, err = client.Logical().Write(path, data)
 		return err
 	}
 }

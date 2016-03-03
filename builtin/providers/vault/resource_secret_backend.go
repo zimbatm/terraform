@@ -94,7 +94,10 @@ func resourceVaultSecretBackend() *schema.Resource {
 }
 
 func resourceVaultSecretBackendCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	path := d.Get("path").(string)
 	// Mimic the behavior of the Vault CLI by defaulting the path to the type.
@@ -109,7 +112,7 @@ func resourceVaultSecretBackendCreate(d *schema.ResourceData, meta interface{}) 
 			MaxLeaseTTL:     d.Get("max_lease_ttl").(string),
 		},
 	}
-	err := client.Sys().Mount(path, input)
+	err = client.Sys().Mount(path, input)
 	if err != nil {
 		return fmt.Errorf("Error creating secret backend %q: %s", path, err)
 	}
@@ -128,7 +131,10 @@ func resourceVaultSecretBackendCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVaultSecretBackendRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	mounts, err := client.Sys().ListMounts()
 	if err != nil {
@@ -163,7 +169,10 @@ func resourceVaultSecretBackendRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceVaultSecretBackendUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	if d.HasChange("default_lease_ttl") || d.HasChange("max_lease_ttl") {
 		err := client.Sys().TuneMount(d.Id(), api.MountConfigInput{
@@ -195,10 +204,13 @@ func resourceVaultSecretBackendUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVaultSecretBackendDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	path := d.Id()
-	err := client.Sys().Unmount(path)
+	err = client.Sys().Unmount(path)
 	if err != nil {
 		return fmt.Errorf("Error deleting secret backend %q: %s", d.Id(), err)
 	}
@@ -206,7 +218,10 @@ func resourceVaultSecretBackendDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVaultSecretBackendConfigPostgresql(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 	pg := d.Get("postgresql").(*schema.Set).List()[0].(map[string]interface{})
 
 	connPath := fmt.Sprintf("%s/config/connection", d.Id())

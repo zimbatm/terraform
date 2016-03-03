@@ -82,7 +82,10 @@ func testAccCheckVaultAuthBackendExists(
 	key string, auth *api.AuthMount) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[key]
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		auths, err := client.Sys().ListAuth()
 		if err != nil {
@@ -118,7 +121,10 @@ func testAccCheckVaultAuthBackendAttributes(
 }
 
 func testAccCheckVaultAuthBackendDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*api.Client)
+	client, err := testAccProvider.Meta().(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	existingAuthBackends, err := client.Sys().ListAuth()
 	if err != nil {
@@ -141,7 +147,10 @@ func testAccCheckVaultAuthBackendDestroy(s *terraform.State) error {
 
 func testAccVaultAuthBackendDisappear(path string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		return client.Sys().DisableAuth(path)
 	}
 }

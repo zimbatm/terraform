@@ -92,7 +92,10 @@ func TestAccVaultToken_implicitParams(t *testing.T) {
 func testAccCheckVaultTokenExists(key string, token *api.Secret) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[key]
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		t, err := client.Auth().Token().Lookup(rs.Primary.ID)
 		if err != nil {
@@ -166,7 +169,10 @@ func testAccCheckVaultTokenAttributes(
 }
 
 func testAccCheckVaultTokenDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*api.Client)
+	client, err := testAccProvider.Meta().(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "vault_token" {
@@ -185,7 +191,10 @@ func testAccCheckVaultTokenDestroy(s *terraform.State) error {
 func testAccVaultTokenDisappear(token *api.Secret) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		id := token.Data["id"].(string)
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		return client.Auth().Token().RevokeTree(id)
 	}
 }

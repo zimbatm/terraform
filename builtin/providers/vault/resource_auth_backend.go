@@ -39,14 +39,17 @@ func resourceVaultAuthBackend() *schema.Resource {
 }
 
 func resourceVaultAuthBackendCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	path := d.Get("path").(string)
 	// Mimic the behavior of the Vault CLI by defaulting the path to the type.
 	if path == "" {
 		path = d.Get("type").(string)
 	}
-	err := client.Sys().EnableAuth(
+	err = client.Sys().EnableAuth(
 		path,
 		d.Get("type").(string),
 		d.Get("description").(string),
@@ -62,7 +65,10 @@ func resourceVaultAuthBackendCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceVaultAuthBackendRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	auths, err := client.Sys().ListAuth()
 	if err != nil {
@@ -85,10 +91,13 @@ func resourceVaultAuthBackendRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceVaultAuthBackendDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	path := d.Id()
-	err := client.Sys().DisableAuth(path)
+	err = client.Sys().DisableAuth(path)
 	if err != nil {
 		return fmt.Errorf("Error disabling auth backend: %s", err)
 	}

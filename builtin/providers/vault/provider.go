@@ -1,14 +1,8 @@
 package vault
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-	"net/http"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/vault/api"
 )
 
 // Provider returns a schema.Provider for managing Packet infrastructure.
@@ -16,35 +10,51 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"address": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_ADDR", ""),
 			},
 
 			"ca_cert": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_CACERT", ""),
 			},
 
 			"ca_path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_CAPATH", ""),
 			},
 
-			"auth_method": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "token",
+			"token": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_TOKEN", ""),
+			},
+
+			"client_cert": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_CERT", ""),
+			},
+
+			"client_key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_KEY", ""),
 			},
 
 			"auth_config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
+				Default:  map[string]interface{}{},
 			},
 
 			"allow_unverified_ssl": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_SKIP_VERIFY", false),
 			},
 		},
 
@@ -63,86 +73,29 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := api.DefaultConfig()
-	if v, ok := d.GetOk("address"); ok {
-		config.Address = v.(string)
+	config := &Config{
+		Address:   d.Get("address").(string),
+		Insecure:  d.Get("allow_unverified_ssl").(bool),
+		AuthToken: d.Get("token").(string),
 	}
 
-	// Config setup is adapted from Vault's command/meta.go
-	err := config.ReadEnvironment()
-	if err != nil {
+	caCert := d.Get("ca_cert").(string)
+	caPath := d.Get("ca_path").(string)
+	if err := config.SetCACertPool(caCert, caPath); err != nil {
 		return nil, err
 	}
 
-	tlsConfig := config.HttpClient.Transport.(*http.Transport).TLSClientConfig
-	tlsConfig.InsecureSkipVerify = d.Get("allow_unverified_ssl").(bool)
-
-	var certPool *x509.CertPool
-	if v := d.Get("ca_cert").(string); v != "" {
-		certPool, err = api.LoadCACert(v)
-	} else if v := d.Get("ca_path").(string); v != "" {
-		certPool, err = api.LoadCAPath(v)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("Error setting up CA path: %s", err)
-	}
-
-	if certPool != nil {
-		tlsConfig.RootCAs = certPool
-	}
-
-	client, err := api.NewClient(config)
-	if err != nil {
-		return nil, err
-	}
-
-	authMethod := d.Get("auth_method").(string)
-	authConfig := make(map[string]string)
+	var authConfig map[string]string
 	for k, v := range d.Get("auth_config").(map[string]interface{}) {
 		authConfig[k] = v.(string)
 	}
 
-	var authToken string
-	switch authMethod {
-	case "token":
-		authToken = authConfig["token"]
-	case "cert":
-		if authConfig["client_cert"] == "" {
-			return nil, fmt.Errorf(
-				"Missing required field for cert auth: client_cert")
-		}
-		if authConfig["client_key"] == "" {
-			return nil, fmt.Errorf(
-				"Missing required field for cert auth: client_key")
-		}
-
-		tlsCert, err := tls.X509KeyPair(
-			[]byte(authConfig["client_cert"]), []byte(authConfig["client_key"]))
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Certificates = []tls.Certificate{tlsCert}
-
-		mount := "cert"
-		if v := authConfig["mount"]; v != "" {
-			mount = v
-		}
-		path := fmt.Sprintf("auth/%s/login", mount)
-		secret, err := client.Logical().Write(path, nil)
-		if err != nil {
-			return nil, err
-		}
-		if secret == nil {
-			return "", fmt.Errorf(
-				"Error while attempting client-cert auth with Vault: " +
-					"empty response from credential provider")
-		}
-		authToken = secret.Auth.ClientToken
+	cert := d.Get("client_cert").(string)
+	key := d.Get("client_key").(string)
+	mount := authConfig["mount"]
+	if err := config.SetTokenForClientCert(cert, key, mount); err != nil {
+		return nil, err
 	}
 
-	if authToken != "" {
-		client.SetToken(authToken)
-	}
-
-	return client, nil
+	return config, nil
 }

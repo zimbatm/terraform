@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/vault/api"
 )
 
 func resourceVaultSecret() *schema.Resource {
@@ -32,19 +31,28 @@ func resourceVaultSecret() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
+
+			"token": &schema.Schema{
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Overrides the provider's token for authentication when interacting with this secret. Helpful for interacting with a cubbyhole backend.",
+			},
 		},
 	}
 }
 
 func resourceVaultSecretCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	data := d.Get("data").(map[string]interface{})
 	if ttl := d.Get("ttl").(string); ttl != "" {
 		data["ttl"] = ttl
 	}
 
-	_, err := client.Logical().Write(d.Get("path").(string), data)
+	_, err = client.Logical().Write(d.Get("path").(string), data)
 	if err != nil {
 		return err
 	}
@@ -54,7 +62,10 @@ func resourceVaultSecretCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVaultSecretExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return false, err
+	}
 
 	secret, err := client.Logical().Read(d.Get("path").(string))
 	if err != nil {
@@ -66,7 +77,10 @@ func resourceVaultSecretExists(d *schema.ResourceData, meta interface{}) (bool, 
 }
 
 func resourceVaultSecretRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	secret, err := client.Logical().Read(d.Get("path").(string))
 	if err != nil {
@@ -91,9 +105,12 @@ func isSecretNotFoundError(err error) bool {
 }
 
 func resourceVaultSecretDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
-	_, err := client.Logical().Delete(d.Get("path").(string))
+	_, err = client.Logical().Delete(d.Get("path").(string))
 	if err != nil {
 		return err
 	}

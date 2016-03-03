@@ -192,15 +192,21 @@ func TestAccVaultSecretBackend_postgres(t *testing.T) {
 
 func testAccCheckVaultWriteSecret(path, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
-		_, err := client.Logical().Write(path, map[string]interface{}{"value": value})
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
+		_, err = client.Logical().Write(path, map[string]interface{}{"value": value})
 		return err
 	}
 }
 
 func testAccCheckVaultAssertSecret(path, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		secret, err := client.Logical().Read(path)
 		if err != nil {
 			return err
@@ -222,7 +228,10 @@ func testAccCheckVaultAssertSecret(path, value string) resource.TestCheckFunc {
 func testAccCheckVaultSecretBackendExists(key string, mount *api.MountOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[key]
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		mounts, err := client.Sys().ListMounts()
 		if err != nil {
@@ -285,7 +294,10 @@ func testAccCheckVaultSecretBackendConfigAttributes(
 	expectedDefaultTTL, expectedMaxTTL string,
 ) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		mountConfig, err := client.Sys().MountConfig(path)
 		if err != nil {
 			return err
@@ -317,7 +329,10 @@ func testAccCheckVaultSecretBackendConfigAttributes(
 }
 
 func testAccCheckVaultSecretBackendDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*api.Client)
+	client, err := testAccProvider.Meta().(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	existingMounts, err := client.Sys().ListMounts()
 	if err != nil {
@@ -340,7 +355,10 @@ func testAccCheckVaultSecretBackendDestroy(s *terraform.State) error {
 
 func testAccVaultSecretBackendDisappear(path string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		return client.Sys().Unmount(path)
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/vault/api"
 )
 
 func resourceVaultPolicy() *schema.Resource {
@@ -30,9 +29,12 @@ func resourceVaultPolicy() *schema.Resource {
 }
 
 func resourceVaultPolicyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
-	err := client.Sys().PutPolicy(
+	err = client.Sys().PutPolicy(
 		d.Get("name").(string),
 		d.Get("rules").(string),
 	)
@@ -46,7 +48,10 @@ func resourceVaultPolicyCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVaultPolicyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	policies, err := client.Sys().ListPolicies()
 	if err != nil {
@@ -76,9 +81,12 @@ func resourceVaultPolicyRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVaultPolicyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
-	err := client.Sys().DeletePolicy(d.Id())
+	err = client.Sys().DeletePolicy(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting policy: %s", err)
 	}

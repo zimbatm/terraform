@@ -86,7 +86,10 @@ func testAccCheckVaultPostgresqlRoleExists(
 	key string, secret *api.Secret) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[key]
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		t, err := client.Logical().Read(rs.Primary.ID)
 		if err != nil {
@@ -109,7 +112,10 @@ func testAccCheckVaultPostgresqlRoleAttributes(
 
 func testAccCheckVaultPostgresqlRoleDestroy(backendPath, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		path := fmt.Sprintf("%s/roles/%s", backendPath, name)
 		role, err := client.Logical().Read(path)
 		if err != nil {
@@ -124,17 +130,23 @@ func testAccCheckVaultPostgresqlRoleDestroy(backendPath, name string) resource.T
 
 func testAccVaultPostgresqlRoleDisappear(backendPath, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
-		_, err := client.Logical().Delete(fmt.Sprintf("%s/roles/%s", backendPath, name))
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
+		_, err = client.Logical().Delete(fmt.Sprintf("%s/roles/%s", backendPath, name))
 		return err
 	}
 }
 
 func testAccVaultPostgresqlRoleDrift(backendPath, name, sql string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		path := fmt.Sprintf("%s/roles/%s", backendPath, name)
-		_, err := client.Logical().Write(path, map[string]interface{}{"sql": sql})
+		_, err = client.Logical().Write(path, map[string]interface{}{"sql": sql})
 		return err
 	}
 }

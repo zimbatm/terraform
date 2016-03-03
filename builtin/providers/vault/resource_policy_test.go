@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/vault/api"
 )
 
 func TestAccVaultPolicy_basic(t *testing.T) {
@@ -86,7 +85,10 @@ func testAccCheckVaultPolicyExists(
 	key string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[key]
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		policies, err := client.Sys().ListPolicies()
 		if err != nil {
@@ -107,7 +109,10 @@ func testAccCheckVaultPolicyAttributes(
 	expectedRules string,
 ) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		rules, err := client.Sys().GetPolicy(name)
 		if err != nil {
@@ -122,7 +127,10 @@ func testAccCheckVaultPolicyAttributes(
 }
 
 func testAccCheckVaultPolicyDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*api.Client)
+	client, err := testAccProvider.Meta().(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	policies, err := client.Sys().ListPolicies()
 	if err != nil {
@@ -145,14 +153,20 @@ func testAccCheckVaultPolicyDestroy(s *terraform.State) error {
 
 func testAccVaultPolicyDisappear(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		return client.Sys().DeletePolicy(name)
 	}
 }
 
 func testAccVaultPolicyDrift(name, rules string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		return client.Sys().PutPolicy(name, rules)
 	}
 }

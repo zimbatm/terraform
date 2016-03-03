@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/vault/api"
 )
 
 func resourceVaultPostgresqlRole() *schema.Resource {
@@ -43,7 +42,10 @@ func resourceVaultPostgresqlRole() *schema.Resource {
 }
 
 func resourceVaultPostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	path := fmt.Sprintf("%s/roles/%s",
 		d.Get("backend").(string), d.Get("name").(string))
@@ -51,7 +53,7 @@ func resourceVaultPostgresqlRoleCreate(d *schema.ResourceData, meta interface{})
 	data := map[string]interface{}{
 		"sql": d.Get("sql").(string),
 	}
-	_, err := client.Logical().Write(path, data)
+	_, err = client.Logical().Write(path, data)
 	if err != nil {
 		return err
 	}
@@ -61,7 +63,10 @@ func resourceVaultPostgresqlRoleCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceVaultPostgresqlRoleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return false, err
+	}
 	path := fmt.Sprintf("%s/roles/%s",
 		d.Get("backend").(string), d.Get("name").(string))
 
@@ -75,7 +80,10 @@ func resourceVaultPostgresqlRoleExists(d *schema.ResourceData, meta interface{})
 }
 
 func resourceVaultPostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	role, err := client.Logical().Read(d.Id())
 	if err != nil {
@@ -95,9 +103,12 @@ func resourceVaultPostgresqlRoleRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceVaultPostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
-	_, err := client.Logical().Delete(d.Id())
+	_, err = client.Logical().Delete(d.Id())
 	if err != nil {
 		return err
 	}

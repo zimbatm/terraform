@@ -113,7 +113,10 @@ func testAccCheckVaultAuditBackendExists(
 	key string, audit *api.Audit) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[key]
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 
 		audits, err := client.Sys().ListAudit()
 		if err != nil {
@@ -154,7 +157,10 @@ func testAccCheckVaultAuditBackendAttributes(
 }
 
 func testAccCheckVaultAuditBackendDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*api.Client)
+	client, err := testAccProvider.Meta().(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	existingAuditBackends, err := client.Sys().ListAudit()
 	if err != nil {
@@ -177,7 +183,10 @@ func testAccCheckVaultAuditBackendDestroy(s *terraform.State) error {
 
 func testAccVaultAuditBackendDisappear(path string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*api.Client)
+		client, err := testAccProvider.Meta().(ClientProvider).Client()
+		if err != nil {
+			return err
+		}
 		return client.Sys().DisableAudit(path)
 	}
 }

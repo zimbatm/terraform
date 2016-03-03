@@ -60,7 +60,10 @@ func resourceVaultToken() *schema.Resource {
 }
 
 func resourceVaultTokenCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 
 	policyList := d.Get("policies").(*schema.Set).List()
 	policies := make([]string, 0, len(policyList))
@@ -99,8 +102,11 @@ func resourceVaultTokenCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVaultTokenRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
-	_, err := client.Auth().Token().Lookup(d.Id())
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
+	_, err = client.Auth().Token().Lookup(d.Id())
 	if err != nil {
 		if isTokenNotFoundError(err) {
 			log.Printf("[WARN] %q seems to be gone, removing from state.", d.Id())
@@ -118,6 +124,9 @@ func isTokenNotFoundError(err error) bool {
 }
 
 func resourceVaultTokenDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
+	client, err := meta.(ClientProvider).Client()
+	if err != nil {
+		return err
+	}
 	return client.Auth().Token().RevokeTree(d.Id())
 }
