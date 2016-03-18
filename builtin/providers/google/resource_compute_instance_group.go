@@ -225,7 +225,7 @@ func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}
 			return fmt.Errorf("Error invalid instance URLs: %v", from)
 		}
 		if !validInstanceURLs(to) {
-			return fmt.Errorf("Error invalid instance URLs: %v", to)
+			return fmt.Errorf("Error invalid instance URLs: %v", from)
 		}
 
 		add, remove := calcAddRemove(from, to)
