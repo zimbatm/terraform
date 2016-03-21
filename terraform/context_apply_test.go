@@ -4127,3 +4127,19 @@ aws_instance.foo:
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
+
+// Not failing yet.
+func TestContext2Apply_variableRace(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		m := testModule(t, "apply-variable-race")
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+		})
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if _, err := ctx.Apply(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+}
