@@ -4132,14 +4132,27 @@ aws_instance.foo:
 func TestContext2Apply_variableRace(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		m := testModule(t, "apply-variable-race")
+		p := testProvider("aws")
+		p.ApplyFn = testApplyFn
+		p.DiffFn = testDiffFn
 		ctx := testContext2(t, &ContextOpts{
 			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
 		})
 		if _, err := ctx.Plan(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if _, err := ctx.Apply(); err != nil {
+		state, err := ctx.Apply()
+		if err != nil {
 			t.Fatalf("err: %s", err)
+		}
+
+		mod := state.RootModule()
+		expected := "barbazfoobazfoo"
+		if mod.Outputs["final"] != expected {
+			t.Fatalf("expected: %s, got: %s", expected, mod.Outputs["final"])
 		}
 	}
 }
