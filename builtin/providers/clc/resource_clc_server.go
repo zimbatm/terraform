@@ -73,18 +73,50 @@ func resourceCLCServer() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeMap},
 			},
+			"storage_type": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "standard",
+				Description: "One of standard, premium, hyperscale",
+			},
+			"autoscale_policy": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "CPU autoscale policy",
+			},
+
+			// hyperscale specific
+			"anti_affinity_policy": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Anti-affinity policy for hyperscale placement",
+			},
+
+			// baremetal specific
+			"configuration_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "configuration id for bare metal instance",
+			},
+			"os_type": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "OS type of bare metal instance",
+			},
+
+			// packages to run on boot
+			"packages": &schema.Schema{
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeMap},
+				Description: "Packages to run on server",
+			},
 
 			// optional: misc state storage. non-CLC field
 			"metadata": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-			},
-
-			// optional
-			"storage_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "standard",
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Misc State",
 			},
 
 			// sorta computed
@@ -122,17 +154,21 @@ func resourceCLCServer() *schema.Resource {
 func resourceCLCServerCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*clc.Client)
 	spec := server.Server{
-		Name:           d.Get("name_template").(string),
-		Password:       d.Get("password").(string),
-		Description:    d.Get("description").(string),
-		GroupID:        d.Get("group_id").(string),
-		CPU:            d.Get("cpu").(int),
-		MemoryGB:       d.Get("memory_mb").(int) / 1024,
-		SourceServerID: d.Get("source_server_id").(string),
-		Type:           d.Get("type").(string),
-		IPaddress:      d.Get("private_ip_address").(string),
-		NetworkID:      d.Get("network_id").(string),
-		Storagetype:    d.Get("storage_type").(string),
+		Name:                 d.Get("name_template").(string),
+		Description:          d.Get("description").(string),
+		GroupID:              d.Get("group_id").(string),
+		CPU:                  d.Get("cpu").(int),
+		MemoryGB:             d.Get("memory_mb").(int) / 1024,
+		SourceServerID:       d.Get("source_server_id").(string),
+		Type:                 d.Get("type").(string),
+		IPaddress:            d.Get("private_ip_address").(string),
+		NetworkID:            d.Get("network_id").(string),
+		Password:             d.Get("password").(string),
+		Storagetype:          d.Get("storage_type").(string),
+		CPUAutoscalePolicyID: d.Get("autoscale_policy").(string),
+		AntiAffinityPolicyID: d.Get("anti_affinity_policy").(string),
+		ConfigurationID:      d.Get("configuration_id").(string),
+		OSType:               d.Get("os_type").(string),
 	}
 
 	var err error
