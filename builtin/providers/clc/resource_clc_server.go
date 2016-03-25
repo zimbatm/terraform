@@ -183,6 +183,12 @@ func resourceCLCServerCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	spec.Customfields = fields
 
+	pkgs, err := parsePackages(d)
+	if err != nil {
+		return fmt.Errorf("Failed setting packages: %v", err)
+	}
+	spec.Packages = pkgs
+
 	resp, err := client.Server.Create(spec)
 	if err != nil || !resp.IsQueued {
 		return fmt.Errorf("Failed creating server: %v", err)
