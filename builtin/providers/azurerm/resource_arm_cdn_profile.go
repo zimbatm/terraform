@@ -92,7 +92,7 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	resp, err := cdnProfilesClient.Get(name, resGroup)
-	d.SetId(resp.ID)
+	d.SetId(*resp.ID)
 
 	return resourceArmCdnProfileRead(d, meta)
 }
@@ -158,7 +158,7 @@ func resourceArmCdnProfileDelete(d *schema.ResourceData, meta interface{}) error
 	resGroup := id.ResourceGroup
 	name := id.Path["Profiles"]
 
-	_, err = cdnProfilesClient.DeleteIfExists(name, resGroup)
+	_, err = cdnProfilesClient.DeleteIfExists(name, resGroup, make(<-chan struct{}))
 
 	return err
 }
