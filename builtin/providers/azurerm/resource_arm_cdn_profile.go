@@ -75,12 +75,10 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 		Tags:       expandTags(tags),
 	}
 
-	resp, err := cdnProfilesClient.Create(name, cdnProfile, resGroup)
+	_, err := cdnProfilesClient.Create(name, cdnProfile, resGroup, make(<-chan struct{}))
 	if err != nil {
 		return err
 	}
-
-	d.SetId(*resp.ID)
 
 	log.Printf("[DEBUG] Waiting for CDN Profile (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
@@ -92,6 +90,9 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for CDN Profile (%s) to become available: %s", name, err)
 	}
+
+	resp, err := cdnProfilesClient.Get(name, resGroup)
+	d.SetId(resp.ID)
 
 	return resourceArmCdnProfileRead(d, meta)
 }

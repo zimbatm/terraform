@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -15,6 +12,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
 )
@@ -77,22 +76,6 @@ func withRequestLogging() autorest.SendDecorator {
 	}
 }
 
-func withPollWatcher() autorest.SendDecorator {
-	return func(s autorest.Sender) autorest.Sender {
-		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-			fmt.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
-			resp, err := s.Do(r)
-			fmt.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
-			if autorest.ResponseRequiresPolling(resp) {
-				fmt.Printf("[DEBUG] Azure RM request will poll %s after %d seconds\n",
-					autorest.GetPollingLocation(resp),
-					int(autorest.GetPollingDelay(resp, time.Duration(0))/time.Second))
-			}
-			return resp, err
-		})
-	}
-}
-
 func setUserAgent(client *autorest.Client) {
 	var version string
 	if terraform.VersionPrerelease != "" {
@@ -130,7 +113,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	}
 	client.rivieraClient = rivieraClient
 
-	spt, err := azure.NewServicePrincipalToken(c.ClientID, c.ClientSecret, c.TenantID, azure.AzureResourceManagerScope)
+	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(c.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	spt, err := azure.NewServicePrincipalToken(*oauthConfig, c.ClientID, c.ClientSecret, azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +272,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ssc := storage.NewAccountsClient(c.SubscriptionID)
 	setUserAgent(&ssc.Client)
 	ssc.Authorizer = spt
-	ssc.Sender = autorest.CreateSender(withRequestLogging(), withPollWatcher())
+	ssc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageServiceClient = ssc
 
 	suc := storage.NewUsageOperationsClient(c.SubscriptionID)
