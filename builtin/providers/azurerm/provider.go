@@ -44,9 +44,9 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			//"azurerm_availability_set":       resourceArmAvailabilitySet(),
+			"azurerm_availability_set": resourceArmAvailabilitySet(),
 			//"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":      resourceArmCdnProfile(),
+			//"azurerm_cdn_profile":      resourceArmCdnProfile(),
 			"azurerm_dns_a_record":     resourceArmDnsARecord(),
 			"azurerm_dns_aaaa_record":  resourceArmDnsAAAARecord(),
 			"azurerm_dns_cname_record": resourceArmDnsCNameRecord(),
