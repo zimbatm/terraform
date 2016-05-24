@@ -316,6 +316,9 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 
 func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, error) {
 	keys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
+	if keys.StatusCode == http.StatusNotFound {
+		return "", fmt.Errorf("Storage Account (%q) Not Found", storageAccountName)
+	}
 	if err != nil {
 		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
 	}
