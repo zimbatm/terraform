@@ -1,8 +1,10 @@
 package nsone
 
 import (
-	"github.com/ns1/ns1-go"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
 func teamResource() *schema.Resource {
@@ -26,15 +28,15 @@ func teamResource() *schema.Resource {
 	}
 }
 
-func teamToResourceData(d *schema.ResourceData, t *nsone.Team) error {
-	d.SetId(t.Id)
+func teamToResourceData(d *schema.ResourceData, t *account.Team) error {
+	d.SetId(t.ID)
 	d.Set("name", t.Name)
 	permissionsToResourceData(d, t.Permissions)
 	return nil
 }
 
-func resourceDataToTeam(u *nsone.Team, d *schema.ResourceData) error {
-	u.Id = d.Id()
+func resourceDataToTeam(u *account.Team, d *schema.ResourceData) error {
+	u.ID = d.Id()
 	u.Name = d.Get("name").(string)
 	u.Permissions = resourceDataToPermissions(d)
 	return nil
@@ -42,12 +44,12 @@ func resourceDataToTeam(u *nsone.Team, d *schema.ResourceData) error {
 
 // TeamCreate creates the given team in ns1
 func TeamCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.Team{}
+	client := meta.(*nsone.Client)
+	mj := account.Team{}
 	if err := resourceDataToTeam(&mj, d); err != nil {
 		return err
 	}
-	if err := client.CreateTeam(&mj); err != nil {
+	if _, err := client.Teams.Create(&mj); err != nil {
 		return err
 	}
 	return teamToResourceData(d, &mj)
@@ -55,33 +57,33 @@ func TeamCreate(d *schema.ResourceData, meta interface{}) error {
 
 // TeamRead reads the team data from ns1
 func TeamRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj, err := client.GetTeam(d.Id())
+	client := meta.(*nsone.Client)
+	mj, _, err := client.Teams.Get(d.Id())
 	if err != nil {
 		return err
 	}
-	teamToResourceData(d, &mj)
+	teamToResourceData(d, mj)
 	return nil
 }
 
 // TeamDelete deletes the given team from ns1
 func TeamDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	err := client.DeleteTeam(d.Id())
+	client := meta.(*nsone.Client)
+	_, err := client.Teams.Delete(d.Id())
 	d.SetId("")
 	return err
 }
 
 // TeamUpdate updates the given team in ns1
 func TeamUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.Team{
-		Id: d.Id(),
+	client := meta.(*nsone.Client)
+	mj := account.Team{
+		ID: d.Id(),
 	}
 	if err := resourceDataToTeam(&mj, d); err != nil {
 		return err
 	}
-	if err := client.UpdateTeam(&mj); err != nil {
+	if _, err := client.Teams.Update(&mj); err != nil {
 		return err
 	}
 	teamToResourceData(d, &mj)

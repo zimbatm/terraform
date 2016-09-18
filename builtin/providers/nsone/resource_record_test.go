@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ns1/ns1-go"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
 func TestAccRecord_basic(t *testing.T) {
-	var record nsone.Record
+	var record dns.Record
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -29,7 +31,7 @@ func TestAccRecord_basic(t *testing.T) {
 }
 
 func TestAccRecord_updated(t *testing.T) {
-	var record nsone.Record
+	var record dns.Record
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -76,7 +78,7 @@ func testAccCheckRecordState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheckFunc {
+func testAccCheckRecordExists(n string, record *dns.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -88,11 +90,11 @@ func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheck
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.APIClient)
+		client := testAccProvider.Meta().(*nsone.Client)
 
 		p := rs.Primary
 
-		foundRecord, err := client.GetRecord(p.Attributes["zone"], p.Attributes["domain"], p.Attributes["type"])
+		foundRecord, _, err := client.Records.Get(p.Attributes["zone"], p.Attributes["domain"], p.Attributes["type"])
 
 		if err != nil {
 			// return err
@@ -110,7 +112,7 @@ func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheck
 }
 
 func testAccCheckRecordDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.APIClient)
+	client := testAccProvider.Meta().(*nsone.Client)
 
 	var recordDomain string
 	var recordZone string
@@ -128,65 +130,66 @@ func testAccCheckRecordDestroy(s *terraform.State) error {
 		}
 	}
 
-	foundRecord, _ := client.GetRecord(recordDomain, recordZone, recordType)
+	foundRecord, _, _ := client.Records.Get(recordDomain, recordZone, recordType)
 
-	if foundRecord.Id != "" {
-		return fmt.Errorf("Record still exists")
+	if foundRecord != nil {
+		return fmt.Errorf("Record still exists: %#v", foundRecord)
 	}
 
 	return nil
 }
 
-func testAccCheckRecordAttributes(record *nsone.Record) resource.TestCheckFunc {
+func testAccCheckRecordAttributes(record *dns.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if record.Ttl != 60 {
-			return fmt.Errorf("Bad value : %d", record.Ttl)
+		if record.TTL != 60 {
+			return fmt.Errorf("Bad value : %d", record.TTL)
 		}
 
 		recordAnswer := record.Answers[0]
-		recordAnswerString := recordAnswer.Answer[0]
+		recordAnswerString := recordAnswer.Rdata[0]
 
 		if recordAnswerString != "test1.terraform.io" {
-			return fmt.Errorf("Bad value : %s", record.Ttl)
+			return fmt.Errorf("Bad value : %s", record.TTL)
 		}
 
-		if recordAnswer.Region != "cal" {
-			return fmt.Errorf("Bad value : %s", recordAnswer.Region)
+		if recordAnswer.RegionName != "cal" {
+			return fmt.Errorf("Bad value : %s", recordAnswer.RegionName)
 		}
 
 		recordMetas := recordAnswer.Meta
 
-		if recordMetas["weight"].(float64) != 10 {
-			return fmt.Errorf("Bad value : %b", recordMetas["weight"].(float64))
+		weight := recordMetas.Weight.(float64)
+		if weight != 10 {
+			return fmt.Errorf("Bad value : %b", weight)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckRecordAttributesUpdated(record *nsone.Record) resource.TestCheckFunc {
+func testAccCheckRecordAttributesUpdated(record *dns.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if record.Ttl != 120 {
-			return fmt.Errorf("Bad value : %s", record.Ttl)
+		if record.TTL != 120 {
+			return fmt.Errorf("Bad value : %s", record.TTL)
 		}
 
 		recordAnswer := record.Answers[1]
-		recordAnswerString := recordAnswer.Answer[0]
+		recordAnswerString := recordAnswer.Rdata[0]
 
 		if recordAnswerString != "test3.terraform.io" {
 			return fmt.Errorf("Bad value for updated record: %s", recordAnswerString)
 		}
 
-		if recordAnswer.Region != "wa" {
-			return fmt.Errorf("Bad value : %s", recordAnswer.Region)
+		if recordAnswer.RegionName != "wa" {
+			return fmt.Errorf("Bad value : %s", recordAnswer.RegionName)
 		}
 
 		recordMetas := recordAnswer.Meta
 
-		if recordMetas["weight"].(float64) != 5 {
-			return fmt.Errorf("Bad value : %b", recordMetas["weight"].(float64))
+		if recordMetas.Weight.(float64) != 5 {
+			return fmt.Errorf("Bad value : %b", recordMetas.Weight.(float64))
 		}
 
 		return nil

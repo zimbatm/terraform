@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ns1/ns1-go"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/monitor"
 )
 
 func TestAccMonitoringJob_basic(t *testing.T) {
-	var mj nsone.MonitoringJob
+	var mj monitor.Job
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -29,7 +31,7 @@ func TestAccMonitoringJob_basic(t *testing.T) {
 }
 
 func TestAccMonitoringJob_updated(t *testing.T) {
-	var mj nsone.MonitoringJob
+	var mj monitor.Job
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -76,7 +78,7 @@ func testAccCheckMonitoringJobState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckMonitoringJobExists(n string, monitoringJob *nsone.MonitoringJob) resource.TestCheckFunc {
+func testAccCheckMonitoringJobExists(n string, monitoringJob *monitor.Job) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -88,9 +90,9 @@ func testAccCheckMonitoringJobExists(n string, monitoringJob *nsone.MonitoringJo
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.APIClient)
+		client := testAccProvider.Meta().(*nsone.Client)
 
-		foundMj, err := client.GetMonitoringJob(rs.Primary.Attributes["id"])
+		foundMj, _, err := client.Jobs.Get(rs.Primary.Attributes["id"])
 
 		p := rs.Primary
 
@@ -98,25 +100,25 @@ func testAccCheckMonitoringJobExists(n string, monitoringJob *nsone.MonitoringJo
 			return err
 		}
 
-		if foundMj.Id != p.Attributes["id"] {
+		if foundMj.ID != p.Attributes["id"] {
 			return fmt.Errorf("Monitoring Job not found")
 		}
 
-		*monitoringJob = foundMj
+		monitoringJob = foundMj
 
 		return nil
 	}
 }
 
 func testAccCheckMonitoringJobDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.APIClient)
+	client := testAccProvider.Meta().(*nsone.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "nsone_monitoringjob" {
 			continue
 		}
 
-		mj, err := client.GetMonitoringJob(rs.Primary.Attributes["id"])
+		mj, _, err := client.Jobs.Get(rs.Primary.Attributes["id"])
 
 		if err == nil {
 			return fmt.Errorf("Monitoring Job still exists %#v: %#v", err, mj)
@@ -126,7 +128,7 @@ func testAccCheckMonitoringJobDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckMonitoringJobAttributes(mj *nsone.MonitoringJob) resource.TestCheckFunc {
+func testAccCheckMonitoringJobAttributes(mj *monitor.Job) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Frequency != 60 {
 			return fmt.Errorf("Bad value : %d", mj.Frequency)
@@ -148,7 +150,7 @@ func testAccCheckMonitoringJobAttributes(mj *nsone.MonitoringJob) resource.TestC
 	}
 }
 
-func testAccCheckMonitoringJobAttributesUpdated(mj *nsone.MonitoringJob) resource.TestCheckFunc {
+func testAccCheckMonitoringJobAttributesUpdated(mj *monitor.Job) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Frequency != 120 {
 			return fmt.Errorf("Bad value : %d", mj.Frequency)

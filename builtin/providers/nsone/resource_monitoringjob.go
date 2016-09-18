@@ -2,10 +2,13 @@ package nsone
 
 import (
 	"fmt"
-	"github.com/ns1/ns1-go"
-	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
 	"strconv"
+
+	"github.com/hashicorp/terraform/helper/schema"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/monitor"
 )
 
 func monitoringJobResource() *schema.Resource {
@@ -111,10 +114,10 @@ func monitoringJobResource() *schema.Resource {
 	}
 }
 
-func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob) error {
-	d.SetId(r.Id)
+func monitoringJobToResourceData(d *schema.ResourceData, r *monitor.Job) error {
+	d.SetId(r.ID)
 	d.Set("name", r.Name)
-	d.Set("job_type", r.JobType)
+	d.Set("job_type", r.Type)
 	d.Set("active", r.Active)
 	d.Set("regions", r.Regions)
 	d.Set("frequency", r.Frequency)
@@ -147,7 +150,7 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob)
 	d.Set("notify_repeat", r.NotifyRepeat)
 	d.Set("notify_regional", r.NotifyRegional)
 	d.Set("notify_failback", r.NotifyFailback)
-	d.Set("notify_list", r.NotifyList)
+	d.Set("notify_list", r.NotifyListID)
 	if len(r.Rules) > 0 {
 		rules := make([]map[string]interface{}, len(r.Rules))
 		for i, r := range r.Rules {
@@ -161,10 +164,10 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob)
 	return nil
 }
 
-func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData) error {
-	r.Id = d.Id()
+func resourceDataToMonitoringJob(r *monitor.Job, d *schema.ResourceData) error {
+	r.ID = d.Id()
 	r.Name = d.Get("name").(string)
-	r.JobType = d.Get("job_type").(string)
+	r.Type = d.Get("job_type").(string)
 	r.Active = d.Get("active").(bool)
 	rawRegions := d.Get("regions").([]interface{})
 	r.Regions = make([]string, len(rawRegions))
@@ -175,21 +178,21 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	r.RapidRecheck = d.Get("rapid_recheck").(bool)
 	var rawRules []interface{}
 	if rawRules := d.Get("rules"); rawRules != nil {
-		r.Rules = make([]nsone.MonitoringJobRule, len(rawRules.([]interface{})))
+		r.Rules = make([]*monitor.Rule, len(rawRules.([]interface{})))
 		for i, v := range rawRules.([]interface{}) {
 			rule := v.(map[string]interface{})
-			r.Rules[i] = nsone.MonitoringJobRule{
+			r.Rules[i] = &monitor.Rule{
 				Value:      rule["value"].(string),
 				Comparison: rule["comparison"].(string),
 				Key:        rule["key"].(string),
 			}
 		}
 	} else {
-		r.Rules = make([]nsone.MonitoringJobRule, 0)
+		r.Rules = make([]*monitor.Rule, 0)
 	}
 	for i, v := range rawRules {
 		rule := v.(map[string]interface{})
-		r.Rules[i] = nsone.MonitoringJobRule{
+		r.Rules[i] = &monitor.Rule{
 			Comparison: rule["comparison"].(string),
 			Key:        rule["key"].(string),
 		}
@@ -236,19 +239,19 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 		r.NotifyFailback = v.(bool)
 	}
 	if v, ok := d.GetOk("notify_list"); ok {
-		r.NotifyList = v.(string)
+		r.NotifyListID = v.(string)
 	}
 	return nil
 }
 
 // MonitoringJobCreate Creates monitoring job in ns1
 func MonitoringJobCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.MonitoringJob{}
+	client := meta.(*nsone.Client)
+	mj := monitor.Job{}
 	if err := resourceDataToMonitoringJob(&mj, d); err != nil {
 		return err
 	}
-	if err := client.CreateMonitoringJob(&mj); err != nil {
+	if _, err := client.Jobs.Create(&mj); err != nil {
 		return err
 	}
 	return monitoringJobToResourceData(d, &mj)
@@ -256,33 +259,33 @@ func MonitoringJobCreate(d *schema.ResourceData, meta interface{}) error {
 
 // MonitoringJobRead reads the given monitoring job from ns1
 func MonitoringJobRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj, err := client.GetMonitoringJob(d.Id())
+	client := meta.(*nsone.Client)
+	mj, _, err := client.Jobs.Get(d.Id())
 	if err != nil {
 		return err
 	}
-	monitoringJobToResourceData(d, &mj)
+	monitoringJobToResourceData(d, mj)
 	return nil
 }
 
 // MonitoringJobDelete deteltes the given monitoring job from ns1
 func MonitoringJobDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	err := client.DeleteMonitoringJob(d.Id())
+	client := meta.(*nsone.Client)
+	_, err := client.Jobs.Delete(d.Id())
 	d.SetId("")
 	return err
 }
 
 // MonitoringJobUpdate updates the given monitoring job
 func MonitoringJobUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.MonitoringJob{
-		Id: d.Id(),
+	client := meta.(*nsone.Client)
+	mj := monitor.Job{
+		ID: d.Id(),
 	}
 	if err := resourceDataToMonitoringJob(&mj, d); err != nil {
 		return err
 	}
-	if err := client.UpdateMonitoringJob(&mj); err != nil {
+	if _, err := client.Jobs.Update(&mj); err != nil {
 		return err
 	}
 	monitoringJobToResourceData(d, &mj)
