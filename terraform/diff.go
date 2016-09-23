@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/mitchellh/copystructure"
 )
 
 // DiffChangeType is an enum with the kind of changes a diff has planned.
@@ -287,6 +289,9 @@ type InstanceDiff struct {
 	DestroyTainted bool
 }
 
+func (d *InstanceDiff) Lock()   { d.mu.Lock() }
+func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
+
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {
 	Old         string      // Old Value
@@ -329,6 +334,19 @@ func (d *InstanceDiff) init() {
 
 func NewInstanceDiff() *InstanceDiff {
 	return &InstanceDiff{Attributes: make(map[string]*ResourceAttrDiff)}
+}
+
+func (d *InstanceDiff) Copy() (*InstanceDiff, error) {
+	if d == nil {
+		return nil, nil
+	}
+
+	dCopy, err := copystructure.Config{Lock: true}.Copy(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return dCopy.(*InstanceDiff), nil
 }
 
 // ChangeType returns the DiffChangeType represented by the diff
