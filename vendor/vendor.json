@@ -1253,6 +1253,24 @@
 			"revision": "e4ec8cc423bbe20d26584b96efbeb9102e16d05f"
 		},
 		{
+			"checksumSHA1": "LaOQaDi4rc0QVgWtzDrQqa7hJgs=",
+			"path": "github.com/hashicorp/vault/api",
+			"revision": "023aa9640f00071d15550be96bef2cb4e26aa3d0",
+			"revisionTime": "2016-09-30T13:50:46Z"
+		},
+		{
+			"checksumSHA1": "ft77GtqeZEeCXioGpF/s6DlGm/U=",
+			"path": "github.com/hashicorp/vault/helper/compressutil",
+			"revision": "905d01cf8e01e224563dd4d2c54e9e74e0e21516",
+			"revisionTime": "2016-09-30T19:08:38Z"
+		},
+		{
+			"checksumSHA1": "yUiSTPf0QUuL2r/81sjuytqBoeQ=",
+			"path": "github.com/hashicorp/vault/helper/jsonutil",
+			"revision": "905d01cf8e01e224563dd4d2c54e9e74e0e21516",
+			"revisionTime": "2016-09-30T19:08:38Z"
+		},
+		{
 			"path": "github.com/hashicorp/yamux",
 			"revision": "df949784da9ed028ee76df44652e42d37a09d7e4"
 		},
@@ -1829,6 +1847,12 @@
 		{
 			"path": "github.com/satori/go.uuid",
 			"revision": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
+		},
+		{
+			"checksumSHA1": "Qm7DuiE3Cn0+CelfV9tggSPNG0k=",
+			"path": "github.com/sethgrid/pester",
+			"revision": "2a102734c18c43c74fd0664e06cd414cf9602b93",
+			"revisionTime": "2016-09-16T18:34:45Z"
 		},
 		{
 			"checksumSHA1": "DWJoWDXcRi4HUCyxU6dLVVjR4pI=",
