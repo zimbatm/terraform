@@ -23,7 +23,7 @@ type DebugGraph struct {
 	step int
 	buf  bytes.Buffer
 
-	Graph   *dot.Graph
+	Dot     *dot.Graph
 	dotOpts *GraphDotOpts
 }
 
@@ -79,7 +79,7 @@ func (dg *DebugGraph) DotBytes() []byte {
 	}
 	dg.Lock()
 	defer dg.Unlock()
-	return dg.Graph.Bytes()
+	return dg.Dot.Bytes()
 }
 
 func (dg *DebugGraph) DebugNode(v interface{}) {
@@ -93,15 +93,20 @@ func (dg *DebugGraph) DebugNode(v interface{}) {
 	out := ""
 
 	var node *dot.Node
-	for _, sg := range dg.Graph.Subgraphs {
+	// TODO: recursive
+	for _, sg := range dg.Dot.Subgraphs {
 		node, _ = sg.GetNode(name)
 		if node != nil {
 			break
 		}
 	}
 
+	if node != nil {
+		node.Attrs["comment"] = "this is a node comment"
+	}
+
 	dg.buf.WriteString(fmt.Sprintf("NodeDebug: name:%s out:'%s', node:%v\n", name, out, node))
-	dg.buf.WriteString(fmt.Sprintf("%#v\n", dg.Graph))
+	dg.buf.WriteString(fmt.Sprintf("%#v\n", dg.Dot))
 
 	if nd, ok := v.(GraphNodeDebugger); ok {
 		out := nd.NodeDebug()
@@ -119,11 +124,11 @@ func (dg *DebugGraph) build(g *Graph) error {
 	dg.Lock()
 	defer dg.Unlock()
 
-	dg.Graph = dot.NewGraph(map[string]string{
+	dg.Dot = dot.NewGraph(map[string]string{
 		"compound": "true",
 		"newrank":  "true",
 	})
-	dg.Graph.Directed = true
+	dg.Dot.Directed = true
 
 	if dg.dotOpts == nil {
 		dg.dotOpts = &GraphDotOpts{
@@ -150,9 +155,9 @@ func (dg *DebugGraph) buildSubgraph(modName string, g *Graph, modDepth int) erro
 	// Begin module subgraph
 	var sg *dot.Subgraph
 	if modDepth == 0 {
-		sg = dg.Graph.AddSubgraph(modName)
+		sg = dg.Dot.AddSubgraph(modName)
 	} else {
-		sg = dg.Graph.AddSubgraph(modName)
+		sg = dg.Dot.AddSubgraph(modName)
 		sg.Cluster = true
 		sg.AddAttr("label", modName)
 	}

@@ -38,5 +38,5 @@ func GraphDot(g *Graph, opts *GraphDotOpts) (string, error) {
 		return "", err
 	}
 
-	return dg.Graph.String(), nil
+	return dg.Dot.String(), nil
 }
