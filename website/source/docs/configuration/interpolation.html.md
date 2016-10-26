@@ -153,6 +153,13 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
+  * `formatmap(list, list)` - Creates a map from a list of keys and a list of
+      values. The keys must all be of type string, and the length of the lists
+      must be the same.
+      For example, to output a mapping of AWS IAM user names to the fingerprint
+      of the key used to encrypt their initial password, you might use:
+      `formatmap(aws_iam_user.users.*.name, aws_iam_user_login_profile.users.*.key_fingerprint)`.
+
   * `index(list, elem)` - Finds the index of a given element in a list.
       This function only works on flat lists.
       Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`
