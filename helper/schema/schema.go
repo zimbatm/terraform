@@ -303,8 +303,15 @@ func (s *Schema) finalizeDiff(
 	}
 
 	if s.ForceNew {
-		// Force new, set it to true in the diff
-		d.RequiresNew = true
+		// ForceNew, mark that this field is requiring new under the
+		// following conditions, explained below:
+		//
+		//   * Old != New - There is a change in value. This field
+		//       is therefore causing a new resource.
+		//
+		//   * NewComputed - This field is being computed, hence a
+		//       potential change in value, mark as causing a new resource.
+		d.RequiresNew = d.Old != d.New || d.NewComputed
 	}
 
 	if s.Sensitive {
